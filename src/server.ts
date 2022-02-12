@@ -3,6 +3,8 @@ import path from 'path';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import apiRoutes from './routes/api';
+import bodyParser from 'body-parser';
+import passport from 'passport';
 
 dotenv.config();
 
@@ -10,8 +12,12 @@ const server = express();
 
 server.use(cors());
 
+server.use(bodyParser.json())
+
 server.use(express.static(path.join(__dirname, '../public')));
 server.use(express.urlencoded({ extended: true }));
+
+server.use(passport.initialize());
 
 server.get('/ping', (req: Request, res: Response) => res.json({ pong: true }));
 
@@ -19,13 +25,21 @@ server.use(apiRoutes);
 
 server.use((req: Request, res: Response) => {
     res.status(404);
-    res.json({ error: 'Endpoint não encontrado.' });
+    res.json({ error: 'Endpoint not found.' });
 });
 
 const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
-    res.status(400); // Bad Request
-    console.log(err);
-    res.json({ error: 'Ocorreu algum erro.' });
+    if (err.status) {
+        res.status(err.status)        
+    } else {
+        res.status(400); // Bad Request        
+    }
+    if (err.message) {        
+        res.json({ error: err.message });
+    } else {        
+        res.json({ error: 'some error occurred.' });
+    }
+    console.log(err);    
 }
 server.use(errorHandler);
 
